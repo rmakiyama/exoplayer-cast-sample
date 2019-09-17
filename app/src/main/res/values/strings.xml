@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">exoplayer-cast-sample</string>
+    <string name="menu_cast_title">cast</string>
 </resources>
