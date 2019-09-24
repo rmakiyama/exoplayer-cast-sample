@@ -1,22 +1,15 @@
 package com.rmakiyama.sample.exoplayer.cast
 
-import android.net.Uri
 import android.os.Bundle
 import android.view.Menu
 import androidx.appcompat.app.AppCompatActivity
 import androidx.databinding.DataBindingUtil
-import com.google.android.exoplayer2.DefaultLoadControl
-import com.google.android.exoplayer2.DefaultRenderersFactory
-import com.google.android.exoplayer2.ExoPlayerFactory
-import com.google.android.exoplayer2.SimpleExoPlayer
-import com.google.android.exoplayer2.source.ConcatenatingMediaSource
-import com.google.android.exoplayer2.source.ProgressiveMediaSource
-import com.google.android.exoplayer2.trackselection.DefaultTrackSelector
-import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory
-import com.google.android.exoplayer2.util.Util
+import com.google.android.exoplayer2.ext.cast.MediaItem
+import com.google.android.exoplayer2.util.MimeTypes
 import com.google.android.gms.cast.framework.CastButtonFactory
 import com.google.android.gms.cast.framework.CastContext
 import com.rmakiyama.sample.exoplayer.cast.databinding.ActivityMainBinding
+import com.rmakiyama.sample.exoplayer.cast.player.AudioPlayer
 
 class MainActivity : AppCompatActivity() {
 
@@ -24,24 +17,18 @@ class MainActivity : AppCompatActivity() {
         DataBindingUtil.setContentView<ActivityMainBinding>(this, R.layout.activity_main)
     }
 
-    private val player: SimpleExoPlayer by lazy {
-        ExoPlayerFactory.newSimpleInstance(
-            this,
-            DefaultRenderersFactory(this),
-            DefaultTrackSelector(),
-            DefaultLoadControl()
-        )
-    }
+    private val player: AudioPlayer by lazy { AudioPlayer(this) }
     private lateinit var castContext: CastContext
+    private val mediaItemBuilder: MediaItem.Builder = MediaItem.Builder()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         castContext = CastContext.getSharedInstance(this)
 
-        binding.play.setOnClickListener { player.playWhenReady = true }
-        binding.pause.setOnClickListener { player.playWhenReady = false }
+        binding.play.setOnClickListener { player.play() }
+        binding.pause.setOnClickListener { player.pause() }
 
-        setupSource()
+        setupMediaItem()
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -51,20 +38,15 @@ class MainActivity : AppCompatActivity() {
         return true
     }
 
-    private fun setupSource() {
-        val sourceFactory = DefaultDataSourceFactory(
-            this,
-            Util.getUserAgent(this, getString(R.string.app_name))
-        )
-        val list = resources.getStringArray(R.array.audio_urls).map { Uri.parse(it) }
-        val concatenatingMediaSource = ConcatenatingMediaSource()
-        list.onEach {
-            concatenatingMediaSource.addMediaSource(
-                ProgressiveMediaSource
-                    .Factory(sourceFactory)
-                    .createMediaSource(it)
-            )
+    private fun setupMediaItem() {
+        val items = resources.getStringArray(R.array.audio_urls).map { uri ->
+            mediaItemBuilder
+                .clear()
+                .setMedia(uri)
+                .setTitle("name")
+                .setMimeType(MimeTypes.AUDIO_MP4)
+                .build()
         }
-        player.prepare(concatenatingMediaSource)
+        player.prepare(*items.toTypedArray())
     }
 }
